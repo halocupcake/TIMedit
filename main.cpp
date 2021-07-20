@@ -17,6 +17,11 @@
 #include "TimImage.h"
 #include "TimItem.h"
 
+#ifndef WIN32 // assume linux
+#    include <unistd.h>
+#    include <pwd.h>
+#endif
+
 #define VERSION "0.10a"
 
 MainUI *ui;
@@ -242,7 +247,7 @@ std::string MakePathRelative(const char* path, const char* base)
 	// If file is local, simply trim off the file path
 	if( output.empty() )
 	{
-		char *c = strrchr(path, '\\');
+		char *c = strrchr(const_cast<char *>(path), '\\');
 		if( c == nullptr )
 			return output;
 		output = c+1;
@@ -1341,7 +1346,9 @@ void cb_About(Fl_Menu_ *w, void *u) {
 	fl_message("TIMedit - PSX TIM conversion/editing tool\nBy Lameguy64");
 }
 
+#ifdef WIN32
 extern char binary_icons_timedit_png_start[];
+#endif
 //extern unsigned int _binary_icons_timedit_png_size;
 
 int main(int argc, char** argv)
@@ -1352,18 +1359,31 @@ int main(int argc, char** argv)
 		
 		gettimeofday(&t, nullptr);
 		srand(t.tv_sec);
+#ifdef WIN32
 		user_name = getenv("USERNAME");
+#else
+        uid_t const user_id = geteuid();
+        passwd const *const password = getpwuid(user_id);
+        if (password)
+            user_name = password->pw_name;
+        else
+            user_name = ""; // hope for the best
+#endif
 	}
 	
 	FreeImage_Initialise(false);
 	
 	ui = new MainUI;
 
+#ifdef WIN32
 	app_icon = new Fl_PNG_Image( NULL, 
 		(unsigned char*)binary_icons_timedit_png_start, 
 		400);
-		
 	ui->icon( app_icon );
+#else
+    // dont even bother
+#endif
+		
 	ui->label( "TIMedit " VERSION );
 	ClearGroups();
 	
